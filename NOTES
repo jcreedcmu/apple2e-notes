@@ -1,0 +1,274 @@
+=== 2023.07.01 META: (:id a046a883-7bf9-45bb-9da2-9400e97f9784)
+
+Q: What did I do to copy the disk firmware into RAM?
+A:
+2000<C600.C6FFM
+202A:A9 60
+2028L
+# check for:
+# LDA #$60 ; which indicates we've committed to the disk controller in slot 6
+# STA $2B  ; this is where the disk controller stashes that slot index
+#          ; cf. https://6502disassembly.com/a2-rom/C600ROM.html
+20F8: 60
+20EBL
+# check for:
+# 20F6: BCC $20D3
+# 20F8: RTS
+2000G
+
+=== 2023.07.06 META: (:id 8f69b422-014c-4dd9-8993-072ca9aa3184)
+
+Q: What are the super serial card dip switches set to?
+A:
+1001111
+1111110
+
+Q: What does this mean, I think?
+A:
+300 baud, 8 data, 1 stop, no parity
+
+
+Q: How did I set my usb serial device to those settings?
+A:
+sudo stty -F /dev/ttyUSB0 300 -cstopb -parodd -parenb ; sudo stty -F /dev/ttyUSB0 -a
+
+C0AA = 01010101 = 0x55
+C0AB = 00010110 = 0x16
+
+C0AA: 55 16
+
+00000110 = 6
+00001011 = B
+
+C0AA: 0B 06
+C0A9 # yields 0x10
+
+Q: What's some translation that's happening
+A:?
+'/' 00101111 -> 'H' 01001000
+'1' 00110001 -> 'G' 01000111
+'3' 00110011 -> 'F' 01000110
+'5' 00110101 -> 'E' 01000101
+'7' 00110111 -> 'D' 01000100
+'9' 00111001 -> 'C' 01000011
+
+'0' 00110000 -> 'V' 01010110
+'4' 00110100 -> 'Y' 01011001
+'8' 00111000 -> 'L' 01001100
+
+'2' 00110010 -> '3' 00110011
+
+'6' 00110110 -> '2' 00110010
+
+':' 00111010 -> '1' 00110001
+
+=== 2023.07.14 META: (:id bd49b47f-1cc6-4d27-9fe3-0ed493cd6dcb)
+
+Q: Reference on BASIC programming for the SSC?
+A: https://macgui.com/usenet/?group=2&id=11304
+
+Q: Modified for low speed?
+10 D$ = CHR$(4): C$ = CHR$(1)
+20 PRINT D$;"PR#2"
+30 PRINT C$;"6B": REM 300 bps
+40 PRINT C$;"4D": REM 8 data, 2 stop bit
+50 PRINT C$;"0P": REM no parity
+60 PRINT "Hello, World!"
+70 PRINT D$;"PR#0"
+80 END
+
+
+
+What are settings that worked?
+
+^A 6B 4D 0P
+
+
+speed 300 baud; rows 0; columns 0; line = 0;
+intr = ^C; quit = ^\; erase = ^?; kill = ^U; eof = ^D; eol = <undef>; eol2 = <undef>; swtch = <undef>;
+start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R; werase = ^W; lnext = ^V; discard = ^O; min = 1; time = 0;
+-parenb -parodd -cmspar cs8 hupcl cstopb cread clocal -crtscts
+-ignbrk -brkint -ignpar -parmrk -inpck istrip -inlcr -igncr icrnl ixon -ixoff -iuclc -ixany -imaxbel
+-iutf8
+opost -olcuc -ocrnl onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0 ff0
+isig icanon iexten echo echoe echok -echonl -noflsh -xcase -tostop -echoprt echoctl echoke -flusho
+-extproc
+
+
+even better:
+
+raw istrip -ctlecho
+
+=== 2023.07.15 META: (:id f96ef00a-a05c-4556-8917-ad04fc82bb4c)
+
+Q: What worked for me today, at 9600 baud?
+A:
+Linux side:
+sudo stty -F /dev/ttyUSB0 9600 cs8 cstopb -parenb -icanon istrip -ctlecho
+
+Apple IIe side:
+IN#2
+^A 14B 4D 0P
+
+Q: What do I think for raw register writes?
+
+Control register C0AB
+
+bit 7: 1 means 2 stop bits
+bits 6,5: 00 means 8 data bits
+bit 4: receiver clock source 1?? 0=external 1=internal
+bits 3,2,1,0: 1110 = 9600 baud
+
+10011110 = $9E
+
+Command register C0AA
+
+bits 7,6 parity mode control: 00 means odd parity, but
+bit 5: 0 means no parity actually used
+bit 4: 0 means no echo
+bits 3,2: 10 means set RTS low and transmit no interrupts
+bit 1: 1 means disable receiver interrupts
+bit 0: 1 means DTR low
+
+00001011 = $0B
+
+C0AA: 0B
+C0AB: 9E
+C0A9
+C0A8: 41
+
+=== 2023.07.15 META: (:id b21c37c4-4f85-486e-91c6-cd826c4ee86d)
+
+Q: Some useful information on interrupts in the 6502:
+A:
+http://6502.org/tutorials/interrupts.html
+
+Q: Where is the BELL subroutine in the monitor ROM?
+A: $FF3A
+
+Q: Where's the IRQ vector?
+A: In $03FE.$03FF, little endian
+
+Q: How how point the interrupt handler to $2000?
+A:
+<<<
+03FE: 00 20
+>>>
+
+Q: How write an interrupt handler that just beeps?
+And a little subroutine that enables interrupts?
+
+A:
+.org $2000
+PHA
+TXA
+PHA
+JSR $FF3A
+PLA
+TAX
+PLA
+RTI
+
+ENABLE: CLI
+RTS
+
+<<<
+2000: 48 8A 48 20 3A FF 68 AA 68 40
+200A: 58 60
+>>>
+
+Q: What about setting up the serial card?
+A:
+<<<
+Control register C0AB
+
+bit 7: 1 means 2 stop bits
+bits 6,5: 00 means 8 data bits
+bit 4: receiver clock source 1?? 0=external 1=internal
+bits 3,2,1,0: 1110 = 9600 baud
+
+10011110 = $9E
+
+Command register C0AA
+
+bits 7,6 parity mode control: 00 means odd parity, but
+bit 5: 0 means no parity actually used
+bit 4: 0 means no echo
+bits 3,2: 10 means set RTS low and transmit no interrupts
+bit 1: 0 means enable receiver interrupts
+bit 0: 1 means DTR low
+
+00001001 = $09
+
+C0AA: 09
+C0AB: 9E
+# C0A9 status
+# C0A8 read/write data
+>>>
+
+Q: My overall script?
+A:
+Apple IIe side:
+<<<
+CALL -151
+03FE: 00 20
+2000: 48 8A 48 20 3A FF 68 AA 68 40
+200A: 58 60
+200AG
+C0AA: 09 9E
+>>>
+Linux side:
+<<<
+sudo chown jcreed:jcreed /dev/ttyUSB0
+sudo stty -F /dev/ttyUSB0 9600 cs8 cstopb -parenb -icanon istrip -ctlecho
+node /tmp/b.js
+>>>
+where /tmp/b.js is
+<<<
+const fs = require('fs');
+const tty = fs.createWriteStream('/dev/ttyUSB0');
+tty.write('0', 'ascii');
+>>>
+
+Q: Result?
+A: Infinite beeping after the byte is transmitted! I suppose I might
+need to actually read the byte or something to stop the SSC from pulling IRQ low.
+
+Q: Now going with?
+A:
+<<<
+BUF EQU $2100
+RDSERIAL EQU $C0A8
+
+.ORG $2000
+PHA
+TXA
+PHA
+JSR $FF3A
+LDA RDSERIAL
+STA BUF
+PLA
+TAX
+PLA
+RTI
+
+ENABLE: CLI
+RTS
+>>>
+
+
+Which means an overall AppleIIe-side script of:
+<<<
+CALL -151
+03FE: 00 20
+
+2000: 48 8A 48 20 3A FF AD A8
+2008: C0 8D 00 21 68 AA 68 40
+2010: 58 60
+2010G
+
+C0AA: 09 9E
+>>>
+
+Q: Does that fix the infinite beep?
+A: No, but I do see the correct byte transferred into 2100, at least.
