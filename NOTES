@@ -310,3 +310,10 @@ Q: Can I just get away with reading the status register? Does that make the SSC 
 A: When I try just hot-patching my existing program with
 2007: A9
 to read the status register instead of data, I get *two* beeps --- I wonder if I'm re-entering the interrupt handler because of overrun or something? I see $BC at $2100, so it seems like it is still true.
+
+=== 2023.07.16 META: (:id 11d380d5-afe8-4766-8051-ff05c1785830)
+
+Q: Can I start transmitting stuff directly after an IN#2 if I send at 300 baud 8 data 1 stop no parity?
+A:
+
+sudo stty -F /dev/ttyUSB0 300 cs8 -cstopb -parenb -icanon istrip -ctlecho
