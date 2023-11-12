@@ -317,3 +317,23 @@ Q: Can I start transmitting stuff directly after an IN#2 if I send at 300 baud 8
 A:
 
 sudo stty -F /dev/ttyUSB0 300 cs8 -cstopb -parenb -icanon istrip -ctlecho
+
+=== 2023.07.20 META: (:id 72e7aa5b-acb2-40e3-aa50-ac1cce582aff)
+
+Q: Ok, I succeeded at getting ADT Pro serial client working with "Speediboot".
+What have I got out of that?
+A:
+I expected did not get an exact a match with
+https://www.apple.asimov.net/images/communications/Apple-IBM%20Connection%20%28Alpha%20Software%201982%29.dsk
+with my disk labelled "The Apple-IBM Connectionn" alpha software corp - software for the IBM PC and Apple II
+Instead I got:
+https://drive.google.com/file/d/1urJ9_NvAGFJWaduMsHaOphXp-nzGn_ME/view?usp=drive_link
+which does have lots of overlapping data.
+
+Similarly
+"THE HOME ACCOUNTANT APPLE Version Continental Software 11223 S. Hindry Avenue Los Angeles, California 90045"
+I expected to match one of
+https://www.apple.asimov.net/images/productivity/finance/Home%20Accountant%202.0%20%281981-Continental%20Software%29.dsk
+https://www.apple.asimov.net/images/productivity/finance/Home%20Accountant%202.01%2C%20Continental%20Software%20Australia.DO
+https://www.apple.asimov.net/images/productivity/finance/Home%20Accountant%202.01.dsk
+but it didn't. I got:
